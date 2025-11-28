@@ -5,7 +5,7 @@ It includes spectrum analysis, environment characterization, GNU Radio simulatio
 
 ---
 
-## 📌 Project Overview
+##  Project Overview
 
 The main goal of this project is to **design, implement, and evaluate** a digital communication system using **Software Defined Radio (SDR)** to transmit medical-related images and text reliably over unused TV broadcast channels (TVWS).
 
@@ -19,7 +19,7 @@ The work covers:
 
 ---
 
-## 🎯 Main Objectives
+##  Main Objectives
 
 - Identify **available TVWS channels** suitable for experimental communication.
 - Implement an SDR-based communication system supporting:
@@ -32,7 +32,7 @@ The work covers:
 
 ---
 
-## 🧱 System Architecture (High-Level)
+## System Architecture (High-Level)
 
 The communication system is built around:
 
