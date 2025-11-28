@@ -1,2 +1,1 @@
-# PROTOTYPE-FOR-A-COMMUNICATION-SYSTEM
-This repository contains the complete development of an SDR-based communication system for reliable transmission of images and text over TV White Spaces (TVWS). It includes spectrum characterization, simulations, protocol design, SDR tests, and all code, flowgraphs, images, and documentation.
+Analysis and characterization of the propagation environment and TV White Spaces (TVWS) spectrum prior to SDR system deployment. This includes frequency sweeps to identify occupied and vacant channels, measurements with a controlled transmission signal, and assessment of terrain and propagation conditions to select suitable operating frequencies and realistic parameters for subsequent SDR link implementation and testing.
