@@ -1,0 +1,1465 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Sistema Telemedicina GMSK</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+  <style>
+    :root {
+      --bg: #020617;
+      --card: #020617;
+      --border: #1e293b;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56,189,248,0.1);
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --doctor-color: #38bdf8;
+      --patient-color: #4ade80;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at top, #0f172a 0, #020617 40%, #020617 100%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .shell {
+      width: 100%;
+      max-width: 1400px;
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(15,23,42,0.97));
+      box-shadow: 0 24px 80px rgba(15,23,42,0.9);
+      padding: 18px 20px 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: radial-gradient(circle at 10% 0%, rgba(56,189,248,0.12), transparent 55%);
+      opacity: 0.85;
+      pointer-events: none;
+    }
+    .shell-inner {
+      position: relative;
+      z-index: 1;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 16px;
+    }
+    .title-block h1 {
+      font-size: 22px;
+      margin: 0 0 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.4);
+      color: var(--muted);
+    }
+    .subtitle {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .pill-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .pill {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.95);
+      border: 1px solid rgba(30,64,175,0.6);
+      color: var(--muted);
+    }
+    .pill span {
+      color: var(--accent);
+      font-weight: 500;
+    }
+    
+    /* ===== LAYOUT DE 3 COLUMNAS ===== */
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 1200px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+    }
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    
+    .card {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%);
+      padding: 16px 16px 18px;
+      position: relative;
+      height: fit-content;
+    }
+    .card h2 {
+      font-size: 15px;
+      margin: 0 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card > p {
+      margin: 0 0 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .tag {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: block;
+    }
+    
+    /* ===== ESTILOS EXISTENTES ===== */
+    .dropzone {
+      border-radius: 16px;
+      border: 1px dashed rgba(148,163,184,0.6);
+      background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(15,23,42,0.95));
+      padding: 14px 14px 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      transition: border-color 0.12s ease, background 0.12s ease, transform 0.08s ease;
+    }
+    .dropzone.drag {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, rgba(15,23,42,1), rgba(8,47,73,0.75));
+      transform: translateY(-1px);
+    }
+    .drop-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .drop-title {
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .drop-sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .file-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .chip {
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.45);
+      color: var(--muted);
+    }
+    .chip strong { color: #e5e7eb; }
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .btn {
+      appearance: none;
+      border: 1px solid rgba(148,163,184,0.8);
+      background: rgba(15,23,42,1);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 9px 15px;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.12s ease;
+    }
+    .btn.primary {
+      border-color: rgba(56,189,248,0.8);
+      background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+      color: #0b1120;
+      box-shadow: 0 10px 30px rgba(56,189,248,0.35);
+    }
+    .btn.primary:disabled {
+      opacity: 0.65;
+      cursor: default;
+      box-shadow: none;
+    }
+    
+    /* Selector de rol */
+    .role-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      background: rgba(15,23,42,0.8);
+      border-radius: 12px;
+      padding: 6px;
+      border: 1px solid var(--border);
+    }
+    .role-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+    }
+    .role-btn.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    
+    input[type=file] {
+      display: none;
+    }
+    .preview-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 10px;
+      align-items: center;
+    }
+    .preview-img {
+      width: 90px;
+      height: 90px;
+      border-radius: 16px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      background: #020617;
+    }
+    .msg {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .msg.ok { color: #4ade80; }
+    .msg.err { color: var(--danger); }
+    .status-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+      font-size: 11px;
+    }
+    .status-pill {
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      background: rgba(15,23,42,0.9);
+      color: var(--muted);
+    }
+    .status-pill span {
+      color: var(--accent);
+    }
+    .log-box {
+      margin-top: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(30,64,175,0.7);
+      background: radial-gradient(circle at top right, #020617 0, #020617 40%, #020617 100%);
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono";
+      font-size: 11px;
+      max-height: 220px;
+      overflow: auto;
+      white-space: pre-wrap;
+      color: #e5e7eb;
+    }
+    .timeline {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      margin-top: 5px;
+      background: rgba(148,163,184,0.7);
+    }
+    .step-dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+    .step-title {
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+    .step-sub {
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 2px;
+    }
+    .mode-selector {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      background: rgba(15,23,42,0.8);
+      border-radius: 12px;
+      padding: 6px;
+      border: 1px solid var(--border);
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+    }
+    .mode-btn.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .text-content, .image-content {
+      display: none;
+    }
+    .text-content.active, .image-content.active {
+      display: block;
+    }
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(15,23,42,0.8);
+      color: #e5e7eb;
+      border: 1px solid #1e293b;
+      font-family: inherit;
+      font-size: 13px;
+      resize: vertical;
+      margin-top: 8px;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .char-count {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: right;
+      margin-top: 4px;
+    }
+    
+    /* ===== ESTILOS MEJORADOS PARA EL CHAT ===== */
+    .chat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    
+    .chat-messages {
+      height: 420px;
+      overflow-y: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(30,64,175,0.7);
+      background: radial-gradient(circle at top right, #020617 0, #020617 40%, #020617 100%);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .chat-message {
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .chat-message.doctor {
+      border-color: rgba(56,189,248,0.3);
+      background: rgba(56,189,248,0.08);
+      align-self: flex-end;
+      margin-left: 40px;
+    }
+    
+    .chat-message.patient {
+      border-color: rgba(74,222,128,0.3);
+      background: rgba(74,222,128,0.08);
+      align-self: flex-start;
+      margin-right: 40px;
+    }
+    
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(148,163,184,0.2);
+    }
+    
+    .sender-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .sender-badge {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .doctor .sender-badge {
+      background: var(--doctor-color);
+      color: #020617;
+    }
+    
+    .patient .sender-badge {
+      background: var(--patient-color);
+      color: #020617;
+    }
+    
+    .message-time {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    
+    .message-content {
+      margin-top: 10px;
+    }
+    
+    .image-container {
+      width: 100%;
+      max-height: 200px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .image-preview {
+      max-width: 100%;
+      max-height: 200px;
+      object-fit: contain;
+    }
+    
+    .text-container {
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      margin-top: 8px;
+      border-left: 3px solid;
+    }
+    
+    .doctor .text-container {
+      border-left-color: var(--doctor-color);
+    }
+    
+    .patient .text-container {
+      border-left-color: var(--patient-color);
+    }
+    
+    .text-content-chat {
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    .file-info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    
+    .file-name {
+      font-weight: 500;
+    }
+    
+    .file-size {
+      font-family: monospace;
+    }
+    
+    .message-status {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+      font-size: 10px;
+      color: #4ade80;
+    }
+    
+    .chat-placeholder {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    
+    .chat-placeholder .icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    
+    .chat-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    
+    .chat-stats span {
+      color: var(--accent);
+      font-weight: 500;
+    }
+    
+    .timestamp {
+      font-size: 9px;
+      color: var(--muted);
+      text-align: right;
+      margin-top: 4px;
+      font-family: monospace;
+    }
+    
+    /* Scrollbar personalizada */
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .chat-messages::-webkit-scrollbar-track {
+      background: rgba(15,23,42,0.5);
+      border-radius: 3px;
+    }
+    
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 3px;
+    }
+    
+    footer {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    
+    footer code {
+      background: rgba(15,23,42,0.95);
+      border-radius: 999px;
+      padding: 2px 7px;
+      border: 1px solid rgba(30,64,175,0.7);
+      color: var(--accent);
+    }
+    
+    .loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <div class="shell-inner">
+    <header>
+      <div class="title-block">
+        <h1>
+          🏥 Sistema Telemedicina GMSK
+          <span class="badge">Comunicación Segura</span>
+        </h1>
+        <p class="subtitle">Transmite datos médicos vía GMSK - Chat muestra lo guardado en el servidor</p>
+        <div class="pill-row">
+          <div class="pill">Usuario: <span id="currentUser">Doctor</span></div>
+          <div class="pill">Estado: <span id="connectionStatus">Conectado</span></div>
+          <div class="pill">Chat: <span id="messageCount">0</span> mensajes</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- COLUMNA 1: Transmisión GMSK -->
+      <section class="card">
+        <div class="tag">📡 Envío de Datos</div>
+        <h2>Transmisión GMSK</h2>
+        <p>Selecciona tu rol y envía datos médicos mediante radiofrecuencia segura.</p>
+        
+        <!-- Selector de rol -->
+        <div class="role-selector">
+          <div class="role-btn active" data-role="doctor">👨‍⚕️ Soy Doctor</div>
+          <div class="role-btn" data-role="patient">👤 Soy Paciente</div>
+        </div>
+        
+        <!-- Selector de modo -->
+        <div class="mode-selector">
+          <div class="mode-btn active" data-mode="image">📷 Imagen Médica</div>
+          <div class="mode-btn" data-mode="text">📝 Informe Clínico</div>
+        </div>
+
+        <!-- Modo Imagen -->
+        <div id="imageContent" class="image-content active">
+          <div id="dropzone" class="dropzone">
+            <div class="drop-main">
+              <div class="drop-title">Arrastra imagen médica aquí</div>
+              <div class="drop-sub">Rayos X, ECG, resonancias, dermatoscopías</div>
+              <div class="file-meta">
+                <div class="chip"><strong id="fileName">Ningún archivo</strong></div>
+                <div class="chip" id="fileSize"></div>
+              </div>
+            </div>
+            <div class="actions">
+              <label class="btn" for="fileInput">Seleccionar</label>
+              <button id="btnUpload" class="btn primary" disabled>Transmitir</button>
+            </div>
+            <input id="fileInput" type="file" accept="image/*">
+          </div>
+
+          <div class="preview-row">
+            <img id="preview" class="preview-img" style="display:none" alt="preview"/>
+            <div>
+              <div id="msg" class="msg">Selecciona una imagen para transmitir</div>
+              <div id="runInfo" class="status-badges" style="display:none">
+                <div class="status-pill">ID: <span id="runId"></span></div>
+                <div class="status-pill">Estado: <span id="runStatus"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modo Texto -->
+        <div id="textContent" class="text-content">
+          <textarea id="textInput" placeholder="Escribe el informe clínico, síntomas observados, diagnóstico presuntivo..."></textarea>
+          <div class="char-count" id="charCount">0 caracteres</div>
+          
+          <div class="preview-row">
+            <div style="width: 90px; height: 90px; border-radius: 16px; background: rgba(15,23,42,0.8); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border);">
+              <span style="font-size: 24px;">📄</span>
+            </div>
+            <div>
+              <div id="textMsg" class="msg">Escribe el informe clínico</div>
+              <div id="textRunInfo" class="status-badges" style="display:none">
+                <div class="status-pill">ID: <span id="textRunId"></span></div>
+                <div class="status-pill">Estado: <span id="textRunStatus"></span></div>
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+            <button id="btnSendText" class="btn primary">Transmitir Informe</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- COLUMNA 2: Estado y Logs -->
+      <section class="card">
+        <div class="tag">📊 Monitoreo</div>
+        <h2>Estado de Transmisión</h2>
+        <p>Seguimiento en tiempo real del procesamiento GMSK</p>
+
+        <div class="timeline">
+          <div class="step">
+            <div class="step-dot" id="dot-queued"></div>
+            <div>
+              <div class="step-title">En cola</div>
+              <div class="step-sub">Datos recibidos, listos para transmisión</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-dot" id="dot-running"></div>
+            <div>
+              <div class="step-title">Transmitiendo</div>
+              <div class="step-sub">GNU Radio procesando señal GMSK</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-dot" id="dot-done"></div>
+            <div>
+              <div class="step-title">Completado</div>
+              <div class="step-sub">Transmisión exitosa - Guardado en servidor</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="log-box" id="logBox">
+          <div class="placeholder">Logs de transmisión aparecerán aquí...</div>
+        </div>
+      </section>
+
+<!-- ===== SECCIÓN DEL CHAT - REEMPLAZAR TODO ESTO ===== -->
+<section class="card">
+  <div class="tag">📋 Historial de Transmisiones</div>
+  
+  <!-- HEADER DEL CHAT - ESTA ES LA PARTE CRÍTICA -->
+  <div class="chat-header">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <h2 style="margin: 0;">Chat de Transmisiones</h2>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <!-- ⭐⭐ BOTÓN DE BORRAR - AQUÍ DEBE ESTAR -->
+        <button id="btnClearChat" class="btn" style="padding: 6px 12px; font-size: 11px; background: linear-gradient(135deg, #dc2626, #ef4444); color: white; border-color: rgba(220, 38, 38, 0.8);">
+          🗑️ Borrar Chat
+        </button>
+        
+        <button id="btnRefreshChat" class="btn" style="padding: 6px 12px; font-size: 11px;">
+          🔄 Actualizar
+        </button>
+        
+        <span id="lastUpdate" style="font-size: 10px; color: var(--muted); margin-left: 8px;"></span>
+      </div>
+    </div>
+  </div>
+  
+  <p>Muestra todo lo que se ha guardado en el servidor</p>
+  
+  <!-- CONTENEDOR DEL CHAT -->
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-placeholder">
+      <div class="icon">📁</div>
+      <div>Cargando transmisiones...</div>
+    </div>
+  </div>
+  
+  <!-- ESTADÍSTICAS -->
+  <div class="chat-stats">
+    <div>Doctor: <span id="doctorCount">0</span> • Paciente: <span id="patientCount">0</span></div>
+    <div>📷 <span id="imageCount">0</span> • 📝 <span id="textCount">0</span></div>
+  </div>
+</section>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const SERVER_URL = "https://subturriculated-vinously-hazel.ngrok-free.dev";
+
+// ===== VARIABLES DE ESTADO =====
+let selectedFile = null;
+let currentRunId = null;
+let pollTimer = null;
+let currentMode = 'image';
+let currentUserRole = 'doctor';
+
+// Contadores
+let messageCount = 0;
+let doctorCount = 0;
+let patientCount = 0;
+let imageCount = 0;
+let textCount = 0;
+
+// ===== FUNCIONES BÁSICAS =====
+function prettyBytes(n) {
+  if (!n && n !== 0) return "";
+  const u = ["B","KB","MB","GB"];
+  let i = 0; let x = n;
+  while (x >= 1024 && i < u.length-1) { x /= 1024; i++; }
+  return `${x.toFixed(i===0?0:1)} ${u[i]}`;
+}
+
+function formatDateTime(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  
+  // Si es hoy, mostrar hora
+  if (date.toDateString() === now.toDateString()) {
+    if (diffMins < 1) return 'Ahora mismo';
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    return `Hoy ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  
+  // Si es ayer
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return `Ayer ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  
+  // Si es hace más tiempo
+  return date.toLocaleDateString('es-ES', { 
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function setFile(file) {
+  selectedFile = file;
+  if (!file) {
+    $("fileName").textContent = "Ningún archivo";
+    $("fileSize").textContent = "";
+    $("preview").style.display = "none";
+    $("btnUpload").disabled = true;
+    $("msg").textContent = "Selecciona una imagen para transmitir";
+    $("msg").className = "msg";
+    return;
+  }
+  $("fileName").textContent = file.name;
+  $("fileSize").textContent = prettyBytes(file.size);
+  $("btnUpload").disabled = false;
+  const url = URL.createObjectURL(file);
+  $("preview").src = url;
+  $("preview").style.display = "block";
+  $("msg").textContent = "Imagen lista para transmisión GMSK";
+  $("msg").className = "msg";
+}
+
+function setDots(status) {
+  const dots = ["dot-queued", "dot-running", "dot-done"];
+  dots.forEach(dot => $(dot).classList.remove("active"));
+
+  if (status.startsWith("QUEUED")) $("dot-queued").classList.add("active");
+  if (status.startsWith("RUNNING")) {
+    $("dot-queued").classList.add("active");
+    $("dot-running").classList.add("active");
+  }
+  if (status.startsWith("DONE")) {
+    dots.forEach(dot => $(dot).classList.add("active"));
+  }
+  if (status.startsWith("FAILED")) {
+    $("dot-queued").classList.add("active");
+    $("dot-running").classList.add("active");
+  }
+}
+
+// ===== TRANSMISIÓN GMSK =====
+async function uploadImage() {
+  if (!selectedFile) return;
+
+  $("btnUpload").disabled = true;
+  $("btnUpload").textContent = "Transmitiendo...";
+  $("msg").textContent = "Iniciando transmisión GMSK...";
+  $("msg").className = "msg";
+
+  const form = new FormData();
+  form.append("file", selectedFile);
+  form.append("user_role", currentUserRole);
+
+  try {
+    const res = await fetch(`${SERVER_URL}/api/upload`, { 
+      method: "POST", 
+      body: form 
+    });
+    
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.detail || "Error en transmisión");
+    }
+    
+    const data = await res.json();
+    currentRunId = data.run_id;
+    
+    $("runId").textContent = currentRunId;
+    $("runStatus").textContent = data.status;
+    $("runInfo").style.display = "flex";
+    $("msg").textContent = "✅ Imagen en transmisión GMSK";
+    $("msg").className = "msg ok";
+    setDots(data.status);
+
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(pollStatus, 1500);
+    
+  } catch (err) {
+    $("msg").textContent = "❌ " + err.message;
+    $("msg").className = "msg err";
+    $("btnUpload").disabled = false;
+    $("btnUpload").textContent = "Transmitir";
+  }
+}
+
+async function sendText() {
+  const text = $("textInput").value.trim();
+  if (!text) {
+    $("textMsg").textContent = "Escribe un informe clínico";
+    $("textMsg").className = "msg err";
+    return;
+  }
+
+  $("btnSendText").disabled = true;
+  $("btnSendText").textContent = "Transmitiendo...";
+  $("textMsg").textContent = "Transmitiendo informe vía GMSK...";
+  $("textMsg").className = "msg";
+
+  try {
+    const form = new FormData();
+    form.append("text", text);
+    form.append("user_role", currentUserRole);
+
+    const res = await fetch(`${SERVER_URL}/api/upload_text`, { 
+      method: "POST", 
+      body: form 
+    });
+    
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.detail || "Error en transmisión");
+    }
+    
+    const data = await res.json();
+    currentRunId = data.run_id;
+    
+    $("textRunId").textContent = currentRunId;
+    $("textRunStatus").textContent = data.status;
+    $("textRunInfo").style.display = "flex";
+    $("textMsg").textContent = "✅ Informe en transmisión GMSK";
+    $("textMsg").className = "msg ok";
+    setDots(data.status);
+
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(pollStatus, 1500);
+    
+    // Limpiar textarea
+    $("textInput").value = "";
+    $("charCount").textContent = "0 caracteres";
+    
+  } catch (err) {
+    $("textMsg").textContent = "❌ " + err.message;
+    $("textMsg").className = "msg err";
+    $("btnSendText").disabled = false;
+    $("btnSendText").textContent = "Transmitir Informe";
+  }
+}
+
+async function pollStatus() {
+  if (!currentRunId) return;
+  
+  try {
+    const res = await fetch(`${SERVER_URL}/api/runs/${currentRunId}`);
+    if (!res.ok) throw new Error("Error consultando estado");
+    
+    const data = await res.json();
+
+    if (currentMode === 'image') {
+      $("runStatus").textContent = data.status;
+    } else {
+      $("textRunStatus").textContent = data.status;
+    }
+    
+    setDots(data.status);
+
+    if (data.log_tail) {
+      $("logBox").textContent = data.log_tail;
+    }
+
+    if (data.status.startsWith("DONE")) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      
+      if (currentMode === 'image') {
+        $("btnUpload").disabled = false;
+        $("btnUpload").textContent = "✅ Completado";
+      } else {
+        $("btnSendText").disabled = false;
+        $("btnSendText").textContent = "✅ Completado";
+      }
+      
+      // Cuando se completa, actualizar el chat
+      setTimeout(fetchTransmissions, 1000);
+      
+    } else if (data.status.startsWith("FAILED")) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      
+      if (currentMode === 'image') {
+        $("btnUpload").disabled = false;
+        $("btnUpload").textContent = "Reintentar";
+      } else {
+        $("btnSendText").disabled = false;
+        $("btnSendText").textContent = "Reintentar";
+      }
+    }
+  } catch (err) {
+    console.error("Error polling:", err);
+  }
+}
+
+// ===== FUNCIONES DEL CHAT =====
+async function fetchTransmissions() {
+  try {
+    $("btnRefreshChat").classList.add("loading");
+    $("btnRefreshChat").textContent = "🔄 Cargando...";
+    
+    const res = await fetch(`${SERVER_URL}/api/transmissions`);
+    if (!res.ok) {
+      throw new Error(`Error ${res.status}`);
+    }
+    
+    const transmissions = await res.json();
+    updateChat(transmissions);
+    
+    // Actualizar último update
+    const now = new Date();
+    $("lastUpdate").textContent = `Última actualización: ${now.toLocaleTimeString('es-ES', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit'
+    })}`;
+    
+  } catch (err) {
+    console.error("Error fetching transmissions:", err);
+    showError("No se pudieron cargar las transmisiones");
+  } finally {
+    $("btnRefreshChat").classList.remove("loading");
+    $("btnRefreshChat").textContent = "🔄 Actualizar";
+  }
+}
+
+function updateChat(transmissions) {
+  console.log("🔄 Actualizando chat con", transmissions.length, "transmisiones");
+  
+  const chat = $("chatMessages");
+  
+  // Resetear contadores
+  messageCount = 0;
+  doctorCount = 0;
+  patientCount = 0;
+  imageCount = 0;
+  textCount = 0;
+  
+  // Limpiar chat COMPLETAMENTE
+  chat.innerHTML = '';
+  
+  // Si no hay transmisiones
+  if (!transmissions || transmissions.length === 0) {
+    console.log("📭 No hay transmisiones para mostrar");
+    chat.innerHTML = `
+      <div class="chat-placeholder">
+        <div class="icon">📁</div>
+        <div>No hay transmisiones guardadas</div>
+      </div>
+    `;
+    updateStats();
+    return;
+  }
+  
+  // ⭐ ORDENAR: más ANTIGUO primero (arriba) → más NUEVO último (abajo)
+  transmissions.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  
+  // Añadir cada transmisión
+  transmissions.forEach(transmission => {
+    addMessageToChat(transmission);
+  });
+  
+  console.log("✅ Chat actualizado. Total mensajes:", messageCount);
+  
+  // Auto-scroll al final (mensajes más recientes)
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function addMessageToChat(transmission) {
+  const chat = $("chatMessages");
+  
+  // Si el chat tiene placeholder, eliminarlo
+  const placeholder = chat.querySelector('.chat-placeholder');
+  if (placeholder) {
+    placeholder.remove();
+  }
+  
+  const sender = transmission.user_role || 'doctor';
+  const mode = transmission.mode || (transmission.filename.includes('.txt') ? 'text' : 'image');
+  
+  const messageDiv = document.createElement("div");
+  messageDiv.className = `chat-message ${sender}`;
+  
+  const time = formatDateTime(transmission.created_at);
+  
+  // Indicador de estado con color
+  let statusColor = '#94a3b8'; // gris por defecto
+  let statusIcon = '⏳';
+  
+  if (transmission.status.includes('FAILED')) {
+    statusColor = '#f97373';
+    statusIcon = '❌';
+  } else if (transmission.status.includes('RUNNING')) {
+    statusColor = '#f59e0b';
+    statusIcon = '🔄';
+  } else if (transmission.status.includes('DONE')) {
+    statusColor = '#10b981';
+    statusIcon = '✅';
+  }
+  
+  let contentHTML = '';
+  
+  if (mode === 'image' || transmission.type === 'image') {
+    const imageUrl = `${SERVER_URL}/uploads/${transmission.filename}`;
+    
+    contentHTML = `
+      <div class="message-header">
+        <div class="sender-info">
+          <div class="sender-badge">
+            ${sender === 'doctor' ? '👨‍⚕️' : '👤'} 
+            ${sender === 'doctor' ? 'DOCTOR' : 'PACIENTE'}
+          </div>
+          <span style="font-size: 11px; color: ${statusColor};">
+            ${statusIcon} ${transmission.status}
+          </span>
+        </div>
+        <div class="message-time">${time}</div>
+      </div>
+      <div class="message-content">
+        <div class="image-container">
+          <img src="${imageUrl}" 
+               alt="Imagen médica" 
+               class="image-preview"
+               loading="lazy"
+               onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzAyMDYxNyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZW4gbm8gZGlzcG9uaWJsZTwvdGV4dD48L3N2Zz4='">
+        </div>
+        <div class="file-info">
+          <span class="file-name">${transmission.filename}</span>
+          <span style="color: ${statusColor};">${transmission.status}</span>
+        </div>
+      </div>
+    `;
+  } else {
+    const textContent = transmission.text_content || '[Sin contenido]';
+    
+    contentHTML = `
+      <div class="message-header">
+        <div class="sender-info">
+          <div class="sender-badge">
+            ${sender === 'doctor' ? '👨‍⚕️' : '👤'} 
+            ${sender === 'doctor' ? 'DOCTOR' : 'PACIENTE'}
+          </div>
+          <span style="font-size: 11px; color: ${statusColor};">
+            ${statusIcon} ${transmission.status}
+          </span>
+        </div>
+        <div class="message-time">${time}</div>
+      </div>
+      <div class="message-content">
+        <div class="text-container">
+          <div class="text-content-chat">${escapeHtml(textContent)}</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  messageDiv.innerHTML = contentHTML;
+  chat.appendChild(messageDiv);
+  
+  // Actualizar contadores
+  messageCount++;
+  if (sender === 'doctor') doctorCount++; 
+  else patientCount++;
+  if (mode === 'image') imageCount++; 
+  else textCount++;
+  
+  updateStats();
+}
+function updateStats() {
+  $("messageCount").textContent = messageCount;
+  $("doctorCount").textContent = doctorCount;
+  $("patientCount").textContent = patientCount;
+  $("imageCount").textContent = imageCount;
+  $("textCount").textContent = textCount;
+}
+
+function showError(message) {
+  const chat = $("chatMessages");
+  chat.innerHTML = `
+    <div class="chat-placeholder" style="color: #f97373;">
+      <div class="icon">⚠️</div>
+      <div>${message}</div>
+      <div style="font-size: 11px; margin-top: 8px;">
+        Verifica que el backend esté funcionando
+      </div>
+    </div>
+  `;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ===== FUNCIONES AUXILIARES =====
+function switchMode(mode) {
+  currentMode = mode;
+  
+  document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
+  
+  $('imageContent').classList.toggle('active', mode === 'image');
+  $('textContent').classList.toggle('active', mode === 'text');
+}
+
+function setUserRole(role) {
+  currentUserRole = role;
+  $("currentUser").textContent = role === 'doctor' ? 'Doctor' : 'Paciente';
+  
+  document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelector(`.role-btn[data-role="${role}"]`).classList.add('active');
+}
+async function clearChat() {
+  showConfirmDialog(
+    "¿Borrar TODO el chat PERMANENTEMENTE?",
+    "⚠️  Esta acción eliminará TODAS las transmisiones de la base de datos y los archivos del servidor. No se puede deshacer.",
+    async () => {
+      console.log("🗑️  Borrando chat PERMANENTEMENTE...");
+      
+      $("btnClearChat").disabled = true;
+      $("btnClearChat").innerHTML = "⏳ Borrando...";
+      
+      try {
+        // 1. Llamar al backend para borrar
+        const response = await fetch(`${SERVER_URL}/api/clear_chat`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log("✅ Resultado del borrado:", result);
+        
+        // 2. Limpiar el frontend
+        const chat = $("chatMessages");
+        chat.innerHTML = `
+          <div class="chat-placeholder">
+            <div class="icon">🧹</div>
+            <div>Chat borrado permanentemente</div>
+            <div style="font-size: 11px; margin-top: 8px; color: #10b981;">
+              ✅ ${result.deleted_records} registros eliminados<br>
+              📁 ${result.deleted_files} archivos borrados
+            </div>
+          </div>
+        `;
+        
+        // 3. Resetear contadores
+        messageCount = 0;
+        doctorCount = 0;
+        patientCount = 0;
+        imageCount = 0;
+        textCount = 0;
+        updateStats();
+        
+        // 4. Mostrar mensaje de éxito
+        showToast(`✅ ${result.message}`, "success");
+        
+        // 5. Desactivar botón de actualizar temporalmente
+        $("btnRefreshChat").disabled = true;
+        setTimeout(() => {
+          $("btnRefreshChat").disabled = false;
+        }, 5000);
+        
+      } catch (err) {
+        console.error("❌ Error borrando chat:", err);
+        showToast("❌ Error borrando chat: " + err.message, "error");
+        
+        // Limpiar frontend aunque falle en backend
+        const chat = $("chatMessages");
+        chat.innerHTML = `
+          <div class="chat-placeholder">
+            <div class="icon">⚠️</div>
+            <div>Error borrando chat</div>
+            <div style="font-size: 11px; margin-top: 8px;">
+              Los datos pueden seguir en el servidor
+            </div>
+          </div>
+        `;
+        
+      } finally {
+        $("btnClearChat").disabled = false;
+        $("btnClearChat").innerHTML = "🗑️ Borrar Chat";
+      }
+    },
+    () => {
+      console.log("❌ Borrado cancelado por el usuario");
+      showToast("Borrado cancelado", "info");
+    }
+  );
+}
+// ===== FUNCIÓN PARA MOSTRAR DIÁLOGO DE CONFIRMACIÓN =====
+function showConfirmDialog(title, message, onConfirm, onCancel = null) {
+  const dialog = document.createElement('div');
+  dialog.className = 'confirm-dialog';
+  dialog.innerHTML = `
+    <div class="confirm-box">
+      <h3 style="margin: 0 0 12px; color: var(--text);">${title}</h3>
+      <p style="margin: 0; color: var(--muted); font-size: 14px;">${message}</p>
+      <div class="confirm-buttons">
+        <button id="confirmCancel" class="btn" style="flex: 1;">Cancelar</button>
+        <button id="confirmOK" class="btn danger" style="flex: 1;">Borrar</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(dialog);
+  
+  dialog.querySelector('#confirmOK').addEventListener('click', () => {
+    dialog.remove();
+    if (onConfirm) onConfirm();
+  });
+  
+  dialog.querySelector('#confirmCancel').addEventListener('click', () => {
+    dialog.remove();
+    if (onCancel) onCancel();
+  });
+  
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) {
+      dialog.remove();
+      if (onCancel) onCancel();
+    }
+  });
+}
+
+// ===== FUNCIÓN PARA MOSTRAR TOAST =====
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: ${type === 'error' ? '#dc2626' : type === 'success' ? '#10b981' : 'var(--card)'};
+    border: 1px solid var(--border);
+    padding: 12px 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+    color: white;
+    font-size: 14px;
+  `;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// ===== INICIALIZACIÓN =====
+function init() {
+  // Transmisión GMSK
+  const fileInput = $("fileInput");
+  fileInput.addEventListener("change", (e) => {
+    setFile(e.target.files[0]);
+  });
+
+  $("dropzone").addEventListener("dragover", (e) => {
+    e.preventDefault();
+    $("dropzone").classList.add("drag");
+  });
+  
+  $("dropzone").addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    $("dropzone").classList.remove("drag");
+  });
+  
+  $("dropzone").addEventListener("drop", (e) => {
+    e.preventDefault();
+    $("dropzone").classList.remove("drag");
+    setFile(e.dataTransfer.files[0]);
+  });
+
+  $("btnUpload").addEventListener("click", uploadImage);
+  $("btnSendText").addEventListener("click", sendText);
+
+  $("textInput").addEventListener("input", (e) => {
+    const length = e.target.value.length;
+    $("charCount").textContent = `${length} caracter${length !== 1 ? 'es' : ''}`;
+  });
+
+  // Selector de modo
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      switchMode(e.currentTarget.dataset.mode);
+    });
+  });
+
+  // Selector de rol
+  document.querySelectorAll('.role-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      setUserRole(e.currentTarget.dataset.role);
+    });
+  });
+
+  
+
+  // Botón para actualizar chat
+  $("btnRefreshChat").addEventListener("click", fetchTransmissions);
+
+    // ⭐⭐ NUEVA LÍNEA: Botón para borrar chat
+  $("btnClearChat").addEventListener("click", clearChat);
+
+  // Estado inicial
+  $("charCount").textContent = "0 caracteres";
+  setUserRole('doctor');
+  
+  // Cargar transmisiones al inicio
+  setTimeout(fetchTransmissions, 500);
+  
+  // Actualizar automáticamente cada 15 segundos
+  setInterval(fetchTransmissions, 15000);
+}
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
