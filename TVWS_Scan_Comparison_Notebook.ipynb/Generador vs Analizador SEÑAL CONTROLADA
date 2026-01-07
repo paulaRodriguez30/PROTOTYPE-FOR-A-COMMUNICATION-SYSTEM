@@ -1,0 +1,232 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import re
+
+# === ARCHIVOS ===
+archivo_csv = "/content/GeneradorSENAL.csv"      # CSV con columnas frecuencia y magnitud
+archivo_txt = "/content/generador660M.csv"      # Archivo con los 1024 datos (texto)
+
+# ============================================================
+# === 1. LEER EL ARCHIVO CSV DE FRECUENCIA Y MAGNITUD ========
+# ============================================================
+df = pd.read_csv(archivo_csv, header=None)
+start_idx = df.index[df.iloc[:, 0].astype(str).str.contains("Frequency", na=False)].tolist()[0] + 1
+
+# Tomar solo las dos primeras columnas (frecuencia y magnitud)
+datos = df.iloc[start_idx:, [0, 1]].dropna()
+datos.columns = ["Frecuencia [Hz]", "Magnitud [dBm]"]
+
+# Convertir a numérico
+datos["Frecuencia [Hz]"] = pd.to_numeric(datos["Frecuencia [Hz]"], errors="coerce")
+datos["Magnitud [dBm]"] = pd.to_numeric(datos["Magnitud [dBm]"], errors="coerce")
+datos = datos.dropna()
+
+# Normalizar para comparación (solo magnitud)
+mag_ref = datos["Magnitud [dBm]"].to_numpy()
+mag_ref = (mag_ref - np.mean(mag_ref)) / np.std(mag_ref)
+
+# ============================================================
+# === 2. LEER EL ARCHIVO CON 1024 DATOS (MUESTREO) ===========
+# ============================================================
+with open(archivo_txt, 'r', encoding='utf-8', errors='ignore') as f:
+    lineas = [l.strip() for l in f if l.strip()]
+
+# Extraer parámetros principales
+freq_central = None
+sample_rate = None
+vector_len = None
+
+for linea in lineas:
+    if "Frequency" in linea:
+        freq_central = float(linea.split(":")[1])
+    elif "Sample Rate" in linea:
+        sample_rate = float(linea.split(":")[1])
+    elif "Vector Length" in linea:
+        vector_len = int(linea.split(":")[1])
+
+# Extraer los bloques numéricos
+datos_txt = []
+for linea in lineas:
+    if re.match(r"^[-\d\.\s,]+$", linea):
+        valores = re.split(r"[\s,]+", linea.strip())
+        numeros = []
+        for v in valores:
+            try:
+                if v.strip() not in ["", "-", "--"]:
+                    numeros.append(float(v))
+            except ValueError:
+                continue
+        if len(numeros) > 1:
+            datos_txt.append(numeros)
+
+# Crear eje de frecuencia
+freqs = np.linspace(freq_central - sample_rate/2,
+                    freq_central + sample_rate/2,
+                    vector_len)
+
+# ============================================================
+# === 3. ENCONTRAR LA GRAFICA MÁS PARECIDA ===================
+# ============================================================
+from scipy.stats import pearsonr
+
+mejor_idx = -1
+mejor_corr = -2  # fuera del rango posible [-1, 1]
+
+# Redimensionar referencia si es necesario
+if len(mag_ref) != vector_len:
+    mag_ref_resampled = np.interp(np.linspace(0, 1, vector_len),
+                                  np.linspace(0, 1, len(mag_ref)), mag_ref)
+else:
+    mag_ref_resampled = mag_ref
+
+for i, bloque in enumerate(datos_txt):
+    bloque = np.array(bloque)
+    if len(bloque) == vector_len:
+        bloque_norm = (bloque - np.mean(bloque)) / np.std(bloque)
+        corr, _ = pearsonr(mag_ref_resampled, bloque_norm)
+        if corr > mejor_corr:
+            mejor_corr = corr
+            mejor_idx = i
+
+print(f"→ El bloque más parecido es el #{mejor_idx+1} con correlación r = {mejor_corr:.4f}")
+
+# ============================================================
+# === 4. GRAFICAR AMBAS CURVAS ===============================
+# ============================================================
+plt.figure(figsize=(10, 6))
+
+# Curva principal
+plt.plot(datos["Frecuencia [Hz]"]/1e6, datos["Magnitud [dBm]"],
+         color="#1f77b4", linewidth=2, label="Medición CSV")
+
+# Punto mínimo
+min_idx = datos["Magnitud [dBm]"].idxmin()
+plt.scatter(datos.loc[min_idx, "Frecuencia [Hz]"]/1e6,
+            datos.loc[min_idx, "Magnitud [dBm]"],
+            color="red", s=70, edgecolor='black', zorder=5)
+plt.text(datos.loc[min_idx, "Frecuencia [Hz]"]/1e6 + 0.2,
+         datos.loc[min_idx, "Magnitud [dBm]"],
+         f"{datos.loc[min_idx, 'Magnitud [dBm]']:.2f} dBm",
+         color="red", fontsize=10)
+
+# Bloque más parecido
+if mejor_idx >= 0:
+    plt.plot(freqs/1e6, datos_txt[mejor_idx],
+             linestyle='--', color='orange', linewidth=1.8,
+             label=f"Bloque {mejor_idx+1} (más parecido, r={mejor_corr:.3f})")
+
+# ============================================================
+# === 5. FORMATO FINAL =======================================
+# ============================================================
+plt.title("Comparación del espectro principal vs. bloque más similar", fontsize=14, weight='bold')
+plt.xlabel("Frecuencia [MHz]", fontsize=12)
+plt.ylabel("Magnitud [dBm]", fontsize=12)
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.legend()
+
+# Ajustar rango Y (20% más amplio)
+ymin, ymax = plt.ylim()
+plt.ylim(ymin - abs(ymax - ymin)*1, ymax + abs(ymax - ymin)*1)
+
+plt.tight_layout()
+plt.show()
+# ============================================================
+# === DETECCIÓN DE OCUPACIÓN ESPECTRAL (MEJORADA + SIN IMPULSOS + ROBUSTA)
+# ============================================================
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ---------- Preparar datos base (usa el bloque más parecido) ----------
+frecuencia = freqs
+magnitud = np.array(datos_txt[mejor_idx])
+
+# ---------- Parámetros ajustables ----------
+ventana_suavizado = 5
+k_sigma = 2.5
+min_ancho_MHz = 3
+tolerancia_puntos = 3
+porcentaje_ruido = 20
+gap_permitido = 2   # NUEVO: tolerancia a pequeños valles dentro de un canal
+# ------------------------------------------
+
+# === 1. Suavizado sin introducir impulsos ===
+magnitud_ext = np.pad(magnitud, (ventana_suavizado//2,), mode='reflect')
+magnitud_suav = np.convolve(magnitud_ext, np.ones(ventana_suavizado)/ventana_suavizado, mode='valid')
+
+# === 2. Eliminar impulsos residuales en los extremos (recorte) ===
+margen = 3
+magnitud_suav[:margen] = magnitud_suav[margen]
+magnitud_suav[-margen:] = magnitud_suav[-margen-1]
+
+# === 3. Cálculo del piso de ruido ===
+n_ruido = int(len(magnitud_suav) * porcentaje_ruido / 100)
+indices_ruido = np.argsort(magnitud_suav)[:n_ruido]
+piso_ruido = np.mean(magnitud_suav[indices_ruido])
+sigma_ruido = np.std(magnitud_suav[indices_ruido])
+umbral = piso_ruido + k_sigma * sigma_ruido
+
+# === 4. Detección de canales ocupados (con tolerancia a huecos) ===
+mask_ocupado = magnitud_suav > umbral
+
+canales_ocupados = []
+inicio = None
+gap_count = 0
+
+for i in range(len(mask_ocupado)):
+    if mask_ocupado[i]:
+        if inicio is None:
+            inicio = i
+        gap_count = 0  # reinicia el conteo de huecos dentro del canal
+    else:
+        if inicio is not None:
+            gap_count += 1
+            if gap_count > gap_permitido:  # si el hueco supera la tolerancia
+                fin = i - gap_count + 1
+                if fin - inicio >= tolerancia_puntos:
+                    f_inicio = frecuencia[inicio]
+                    f_fin = frecuencia[fin - 1]
+                    ancho = abs(f_fin - f_inicio)
+                    if ancho >= min_ancho_MHz * 1e6:
+                        canales_ocupados.append((f_inicio, f_fin))
+                inicio = None
+                gap_count = 0
+
+# Si el canal llega hasta el final
+if inicio is not None:
+    f_inicio = frecuencia[inicio]
+    f_fin = frecuencia[-1]
+    ancho = abs(f_fin - f_inicio)
+    if ancho >= min_ancho_MHz * 1e6:
+        canales_ocupados.append((f_inicio, f_fin))
+
+# === 5. Visualización ===
+plt.figure(figsize=(10, 5))
+plt.plot(frecuencia, magnitud_suav, color='orange', alpha=0.6, label='Magnitud suavizada (bordes limpios)')
+plt.axhline(piso_ruido, color='gray', linestyle='--', alpha=0.7, label=f'Piso de ruido ({piso_ruido:.1f} dBm)')
+plt.axhline(umbral, color='red', linestyle='--', alpha=0.7, label=f'Umbral adaptativo ({umbral:.1f} dBm)')
+
+for (f_ini, f_fin) in canales_ocupados:
+    plt.axvspan(f_ini, f_fin, color='red', alpha=0.25)
+
+plt.legend()
+plt.title("Detección de ocupación espectral (mejorada, sin impulsos en bordes)")
+plt.xlabel("Frecuencia [Hz]")
+plt.ylabel("Magnitud [dBm]")
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.tight_layout()
+plt.show()
+
+# === 6. Reporte ===
+print("\n=== RESULTADOS DE DETECCIÓN (MEJORADA Y LIMPIA) ===")
+print(f"Piso de ruido estimado: {piso_ruido:.2f} dBm")
+print(f"Desviación estándar del ruido: {sigma_ruido:.2f} dB")
+print(f"Umbral adaptativo: {umbral:.2f} dBm")
+
+if canales_ocupados:
+    print(f"\nSe detectaron {len(canales_ocupados)} canales ocupados:")
+    for i, (f1, f2) in enumerate(canales_ocupados, 1):
+        print(f"  Canal {i}: {f1/1e6:.2f} – {f2/1e6:.2f} MHz")
+else:
+    print("\nNo se detectaron canales ocupados.")
